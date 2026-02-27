@@ -44,6 +44,7 @@ Run:
     skipChunkBtn: $("skip-chunk-btn"),
     approveChunkBtn: $("approve-chunk-btn"),
     editorBody: $("editor-body"),
+    stagingBody: $("staging-body"),
     historyBody: $("history-body"),
     docFontFamily: $("doc-font-family"),
     docFontSize: $("doc-font-size"),
@@ -114,6 +115,7 @@ Run:
       },
       sourceParagraphs: [],
       chunks: [],
+      stagedParagraphs: [],
       currentChunkIndex: 0,
     };
   }
@@ -193,6 +195,7 @@ Run:
       docSettings: { ...defaults.docSettings, ...(state.docSettings || {}) },
       sourceParagraphs: Array.isArray(state.sourceParagraphs) ? state.sourceParagraphs : [],
       chunks: Array.isArray(state.chunks) ? state.chunks : [],
+      stagedParagraphs: Array.isArray(state.stagedParagraphs) ? state.stagedParagraphs : [],
       currentChunkIndex: Number.isInteger(state.currentChunkIndex)
         ? state.currentChunkIndex
         : 0,
@@ -349,6 +352,63 @@ Run:
     renderCurrentChunkStatsOnly();
   }
 
+  function isParagraphStaged(paragraphId) {
+    return (appState.stagedParagraphs || []).some((item) => item.paragraphId === paragraphId);
+  }
+
+  function stageParagraph(chunk, para) {
+    if (!chunk || !para) return;
+    if (!appState.stagedParagraphs) {
+      appState.stagedParagraphs = [];
+    }
+    if (isParagraphStaged(para.id)) return;
+    appState.stagedParagraphs.push({
+      id: uid("staged"),
+      chunkId: chunk.id,
+      paragraphId: para.id,
+      createdAt: new Date().toISOString(),
+    });
+    scheduleSave();
+    renderStaging();
+  }
+
+  function unstageParagraph(itemId) {
+    appState.stagedParagraphs = (appState.stagedParagraphs || []).filter((item) => item.id !== itemId);
+    scheduleSave();
+    renderStaging();
+    renderCurrentChunk();
+  }
+
+  function findParagraphLocation(paragraphId, chunkId) {
+    const chunks = appState.chunks || [];
+    if (chunkId) {
+      const chunkIndex = chunks.findIndex((chunk) => chunk.id === chunkId);
+      if (chunkIndex >= 0) {
+        const chunk = chunks[chunkIndex];
+        const paraIndex = chunk.paragraphs.findIndex((p) => p.id === paragraphId);
+        if (paraIndex >= 0) {
+          return { chunk, chunkIndex, paragraph: chunk.paragraphs[paraIndex], paraIndex };
+        }
+      }
+    }
+    for (let i = 0; i < chunks.length; i += 1) {
+      const chunk = chunks[i];
+      const paraIndex = chunk.paragraphs.findIndex((p) => p.id === paragraphId);
+      if (paraIndex >= 0) {
+        return { chunk, chunkIndex: i, paragraph: chunk.paragraphs[paraIndex], paraIndex };
+      }
+    }
+    return null;
+  }
+
+  function jumpToParagraph(location) {
+    if (!location) return;
+    appState.currentChunkIndex = location.chunkIndex;
+    activeParagraphId = location.paragraph.id;
+    scheduleSave();
+    render();
+  }
+
   function importText(text, meta) {
     const paragraphs = parseParagraphs(text);
     appState = createDefaultState();
@@ -356,6 +416,7 @@ Run:
     appState.sourceParagraphs = paragraphs;
     appState.ui.chunkSizeTarget = appState.ui.chunkSizeTarget || CHUNK_SIZE_DEFAULT;
     appState.chunks = buildChunksFromParagraphs(paragraphs, appState.ui.chunkSizeTarget);
+    appState.stagedParagraphs = [];
     appState.currentChunkIndex = 0;
     scheduleSave();
     render();
@@ -482,6 +543,9 @@ Run:
       ensureHistory(para);
       const block = document.createElement("div");
       block.className = "paragraph-block";
+      if (para.id === activeParagraphId) {
+        block.classList.add("active");
+      }
 
       const header = document.createElement("div");
       header.className = "paragraph-header";
@@ -509,6 +573,12 @@ Run:
       const tools = document.createElement("div");
       tools.className = "paragraph-tools";
 
+      const sendBtn = document.createElement("button");
+      sendBtn.type = "button";
+      sendBtn.className = "btn icon-btn";
+      sendBtn.textContent = getContent("buttons.send", "Send");
+      sendBtn.disabled = isParagraphStaged(para.id);
+
       const undoBtn = document.createElement("button");
       undoBtn.type = "button";
       undoBtn.className = "btn icon-btn";
@@ -521,6 +591,7 @@ Run:
 
       updateUndoRedoButtons(undoBtn, redoBtn, para);
 
+      tools.appendChild(sendBtn);
       tools.appendChild(undoBtn);
       tools.appendChild(redoBtn);
 
@@ -570,6 +641,11 @@ Run:
         }
       });
       body.appendChild(edited);
+
+      sendBtn.addEventListener("click", () => {
+        stageParagraph(chunk, para);
+        sendBtn.disabled = true;
+      });
 
       undoBtn.addEventListener("click", () => {
         undoParagraph(para, edited, undoBtn, redoBtn);
@@ -651,6 +727,72 @@ Run:
       });
     });
     return flags;
+  }
+
+  function renderStaging() {
+    if (!elements.stagingBody) return;
+    elements.stagingBody.innerHTML = "";
+    const staged = appState.stagedParagraphs || [];
+    if (!staged.length) {
+      const emptyText = getContent("messages.stagingEmpty", "No staged paragraphs yet.");
+      elements.stagingBody.innerHTML = `<div class="empty-state">${emptyText}</div>`;
+      return;
+    }
+
+    staged.forEach((item) => {
+      const location = findParagraphLocation(item.paragraphId, item.chunkId);
+      const card = document.createElement("div");
+      card.className = "staging-card";
+
+      const meta = document.createElement("div");
+      meta.className = "staging-meta";
+
+      const label = document.createElement("div");
+      if (location) {
+        const chunkLabel = getContent("labels.chunkLabel", "Chunk");
+        const paraPrefix = getContent("labels.paragraphPrefix", "P");
+        const styleTag = location.paragraph.styleTag || "Normal";
+        label.textContent = `${chunkLabel} ${location.chunkIndex + 1} • ${paraPrefix}${location.paraIndex + 1} • ${styleTag}`;
+      } else {
+        label.textContent = getContent("messages.stagingMissing", "Source paragraph no longer available.");
+      }
+
+      const actions = document.createElement("div");
+      actions.className = "staging-actions";
+
+      if (location) {
+        const jumpBtn = document.createElement("button");
+        jumpBtn.type = "button";
+        jumpBtn.className = "btn icon-btn";
+        jumpBtn.textContent = getContent("buttons.jumpTo", "Go to");
+        jumpBtn.addEventListener("click", () => {
+          jumpToParagraph(location);
+        });
+        actions.appendChild(jumpBtn);
+      }
+
+      const removeBtn = document.createElement("button");
+      removeBtn.type = "button";
+      removeBtn.className = "btn icon-btn";
+      removeBtn.textContent = getContent("buttons.remove", "Remove");
+      removeBtn.addEventListener("click", () => {
+        unstageParagraph(item.id);
+      });
+      actions.appendChild(removeBtn);
+
+      meta.appendChild(label);
+      meta.appendChild(actions);
+      card.appendChild(meta);
+
+      const text = document.createElement("div");
+      text.className = "staging-text";
+      text.textContent = location
+        ? location.paragraph.editedText
+        : getContent("messages.stagingMissing", "Source paragraph no longer available.");
+      card.appendChild(text);
+
+      elements.stagingBody.appendChild(card);
+    });
   }
 
   function renderHistory() {
@@ -746,6 +888,7 @@ Run:
     renderFileMeta();
     renderToolbar();
     renderCurrentChunk();
+    renderStaging();
     renderHistory();
   }
   class LocalRulesEngine {
@@ -1068,6 +1211,7 @@ Run:
   function rechunkFromSource() {
     if (!appState.sourceParagraphs.length) return;
     appState.chunks = buildChunksFromParagraphs(appState.sourceParagraphs, appState.ui.chunkSizeTarget);
+    appState.stagedParagraphs = [];
     appState.currentChunkIndex = 0;
     scheduleSave();
     render();

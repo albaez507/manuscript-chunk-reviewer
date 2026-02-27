@@ -244,6 +244,62 @@ body {
   gap: 16px;
 }
 
+.section-block {
+  display: grid;
+  gap: 12px;
+}
+
+.section-header {
+  display: grid;
+  gap: 4px;
+}
+
+.section-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+}
+
+.staging-body,
+.history-body {
+  display: grid;
+  gap: 12px;
+}
+
+.staging-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  background: #fff;
+  display: grid;
+  gap: 8px;
+}
+
+.staging-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.staging-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.staging-text {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink);
+  background: #fffdf8;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  padding: 8px;
+  white-space: pre-wrap;
+}
+
 .empty-state {
   text-align: center;
   color: var(--muted);
@@ -267,6 +323,11 @@ body {
   background: #fff;
   display: grid;
   gap: 10px;
+}
+
+.paragraph-block.active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px rgba(42, 111, 94, 0.25);
 }
 
 .paragraph-header {

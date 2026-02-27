@@ -128,10 +128,28 @@
 
     <section class="panel history-panel">
       <div class="panel-header">
-        <div class="panel-title" data-i18n="panels.approvedHistoryTitle">Approved History</div>
-        <div class="panel-subtitle" data-i18n="panels.approvedHistorySubtitle">Inline diff + traceable change log</div>
+        <div>
+          <div class="panel-title" data-i18n="panels.reviewQueueTitle">Review Queue</div>
+          <div class="panel-subtitle" data-i18n="panels.reviewQueueSubtitle">Stage paragraphs on the right for modular use.</div>
+        </div>
       </div>
-      <div id="history-body" class="panel-body"></div>
+      <div class="panel-body">
+        <div class="section-block">
+          <div class="section-header">
+            <div class="panel-title" data-i18n="panels.stagingTitle">Staged Paragraphs</div>
+            <div class="panel-subtitle" data-i18n="panels.stagingSubtitle">Send from the editor to collect modular snippets.</div>
+          </div>
+          <div id="staging-body" class="staging-body"></div>
+        </div>
+        <div class="section-divider"></div>
+        <div class="section-block">
+          <div class="section-header">
+            <div class="panel-title" data-i18n="panels.approvedHistoryTitle">Approved History</div>
+            <div class="panel-subtitle" data-i18n="panels.approvedHistorySubtitle">Inline diff + traceable change log</div>
+          </div>
+          <div id="history-body" class="history-body"></div>
+        </div>
+      </div>
     </section>
   </main>
 
