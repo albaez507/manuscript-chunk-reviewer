@@ -1,0 +1,200 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Manuscript Chunk Reviewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;600&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="resume-banner" class="banner hidden">
+    <div>
+      <strong data-i18n="banner.prompt">Resume previous session?</strong>
+      <span id="resume-meta" class="banner-meta"></span>
+    </div>
+    <div class="banner-actions">
+      <button id="resume-btn" class="btn primary" data-i18n="banner.resume">Resume</button>
+      <button id="dismiss-btn" class="btn" data-i18n="banner.dismiss">Dismiss</button>
+    </div>
+  </div>
+
+  <header class="toolbar">
+    <div class="toolbar-main">
+      <div class="brand">
+        <div class="brand-title" data-i18n="brand.title">Manuscript Chunk Reviewer</div>
+        <div id="file-meta" class="brand-subtitle" data-i18n="brand.subtitleNoFile">No file loaded</div>
+      </div>
+      <div class="toolbar-actions">
+        <div class="control">
+          <label class="control-label" for="file-input" data-i18n="toolbar.import">Import</label>
+          <input id="file-input" type="file" accept=".txt,.md,.docx" />
+        </div>
+        <div class="control">
+          <label class="control-label" data-i18n="toolbar.session">Session</label>
+          <div class="button-row">
+            <button id="load-session-btn" class="btn" data-i18n="buttons.loadSession">Load .json</button>
+            <button id="export-session-btn" class="btn" data-i18n="buttons.exportSession">Export .json</button>
+          </div>
+        </div>
+        <div class="control">
+          <label class="control-label" data-i18n="toolbar.export">Export</label>
+          <div class="button-row">
+            <button id="export-txt-btn" class="btn" data-i18n="buttons.exportTxt">Final .txt</button>
+            <button id="export-docx-btn" class="btn primary" data-i18n="buttons.exportDocx">Final .docx</button>
+          </div>
+        </div>
+        <div class="control">
+          <label class="control-label" data-i18n="toolbar.docSettings">Doc Settings</label>
+          <button id="doc-settings-btn" class="btn" data-i18n="buttons.docSettingsOpen">Open</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="toolbar-secondary">
+      <div class="control wide">
+        <label class="control-label" for="chunk-size" data-i18n="toolbar.chunkSizeTarget">Chunk size target</label>
+        <div class="range-row">
+          <input id="chunk-size" type="range" min="400" max="2000" step="50" />
+          <span id="chunk-size-value" class="range-value">1000</span>
+          <button id="rechunk-btn" class="btn" data-i18n="buttons.rechunk">Rechunk</button>
+        </div>
+      </div>
+      <div class="control">
+        <label class="control-label" for="layout-preset" data-i18n="toolbar.layout">Layout</label>
+        <select id="layout-preset">
+          <option value="editor" data-i18n="options.layout.editor">Editor Focus (70/30)</option>
+          <option value="balanced" data-i18n="options.layout.balanced">Balanced (50/50)</option>
+          <option value="review" data-i18n="options.layout.review">Review Focus (40/60)</option>
+        </select>
+      </div>
+      <div class="control">
+        <label class="control-label" for="engine-select" data-i18n="toolbar.engine">Engine</label>
+        <select id="engine-select">
+          <option value="local" data-i18n="options.engine.local">Local (offline)</option>
+          <option value="ai" disabled data-i18n="options.engine.ai">AI (placeholder)</option>
+        </select>
+      </div>
+      <div class="control">
+        <label class="control-label" for="mode-select" data-i18n="toolbar.mode">Mode</label>
+        <select id="mode-select">
+          <option value="clean" data-i18n="options.mode.clean">Clean Structure</option>
+          <option value="punct" data-i18n="options.mode.punct">Punctuation/Spelling</option>
+          <option value="translation" data-i18n="options.mode.translation">Faithful Translation (future)</option>
+          <option value="style" data-i18n="options.mode.style">Style (future)</option>
+        </select>
+      </div>
+      <div class="control">
+        <label class="control-label" for="apply-scope" data-i18n="toolbar.applyScope">Apply to</label>
+        <select id="apply-scope">
+          <option value="focused" data-i18n="options.applyScope.focused">Focused paragraph</option>
+          <option value="all" data-i18n="options.applyScope.all">All in chunk</option>
+        </select>
+      </div>
+      <div class="control">
+        <label class="control-label" data-i18n="toolbar.actions">Actions</label>
+        <div class="button-row">
+          <button id="analyze-btn" class="btn" data-i18n="buttons.analyze">Analyze</button>
+          <button id="suggest-btn" class="btn primary" data-i18n="buttons.suggest">Suggest</button>
+        </div>
+      </div>
+      <div class="control">
+        <label class="control-label" data-i18n="toolbar.compare">Compare</label>
+        <label class="toggle">
+          <input id="compare-toggle" type="checkbox" />
+          <span data-i18n="toolbar.compareToggle">Side-by-side</span>
+        </label>
+      </div>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <section class="panel editor-panel">
+      <div class="panel-header">
+        <div>
+          <div id="chunk-info" class="panel-title">No chunks loaded</div>
+          <div id="chunk-stats" class="panel-subtitle"></div>
+        </div>
+        <div class="panel-actions">
+          <button id="reset-chunk-btn" class="btn" data-i18n="buttons.reset">Reset</button>
+          <button id="skip-chunk-btn" class="btn" data-i18n="buttons.skip">Skip</button>
+          <button id="approve-chunk-btn" class="btn primary" data-i18n="buttons.approve">Approve</button>
+        </div>
+      </div>
+      <div id="editor-body" class="panel-body"></div>
+    </section>
+
+    <section class="panel history-panel">
+      <div class="panel-header">
+        <div class="panel-title" data-i18n="panels.approvedHistoryTitle">Approved History</div>
+        <div class="panel-subtitle" data-i18n="panels.approvedHistorySubtitle">Inline diff + traceable change log</div>
+      </div>
+      <div id="history-body" class="panel-body"></div>
+    </section>
+  </main>
+
+  <div id="doc-settings-modal" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <div class="panel-title" data-i18n="panels.docSettingsTitle">Document Settings</div>
+          <div class="panel-subtitle" data-i18n="panels.docSettingsSubtitle">Clean template export (not a round-trip of original styles).</div>
+        </div>
+        <button id="doc-settings-close" class="btn" data-i18n="buttons.docSettingsClose">Close</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-grid">
+          <label>
+            <span data-i18n="docSettings.fontFamily">Font family</span>
+            <select id="doc-font-family">
+              <option data-i18n="options.docFontFamily.times">Times New Roman</option>
+              <option data-i18n="options.docFontFamily.georgia">Georgia</option>
+              <option data-i18n="options.docFontFamily.garamond">Garamond</option>
+            </select>
+          </label>
+          <label>
+            <span data-i18n="docSettings.baseFontSize">Base font size (pt)</span>
+            <input id="doc-font-size" type="number" min="10" max="14" step="1" />
+          </label>
+          <label>
+            <span data-i18n="docSettings.lineSpacing">Line spacing</span>
+            <input id="doc-line-spacing" type="number" min="1.0" max="2.0" step="0.1" />
+          </label>
+          <label>
+            <span data-i18n="docSettings.marginsPreset">Margins preset</span>
+            <select id="doc-margins">
+              <option value="clean" data-i18n="options.margins.clean">Clean Book</option>
+            </select>
+          </label>
+          <label>
+            <span data-i18n="docSettings.firstLineIndent">First-line indent (cm)</span>
+            <div class="inline">
+              <input id="doc-indent-enabled" type="checkbox" />
+              <input id="doc-indent-size" type="number" min="0" max="2" step="0.1" />
+            </div>
+          </label>
+          <label>
+            <span data-i18n="docSettings.spacingBefore">Spacing before (pt)</span>
+            <input id="doc-space-before" type="number" min="0" max="24" step="1" />
+          </label>
+          <label>
+            <span data-i18n="docSettings.spacingAfter">Spacing after (pt)</span>
+            <input id="doc-space-after" type="number" min="0" max="24" step="1" />
+          </label>
+        </div>
+        <p class="note" data-i18n="notes.docSettingsNote">Title, Heading, Quote, and Poem styles are applied at export time based on each paragraph's style tag.</p>
+      </div>
+    </div>
+  </div>
+
+  <input id="session-input" type="file" accept=".json" hidden />
+
+  <script src="https://unpkg.com/mammoth/mammoth.browser.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/diff_match_patch/20121119/diff_match_patch.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/docx/7.7.1/docx.umd.js"></script>
+  <script src="content.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
