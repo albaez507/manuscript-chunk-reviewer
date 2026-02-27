@@ -44,7 +44,10 @@ Run:
     skipChunkBtn: $("skip-chunk-btn"),
     approveChunkBtn: $("approve-chunk-btn"),
     editorBody: $("editor-body"),
+    stagingWrap: $("staging-wrap"),
     stagingBody: $("staging-body"),
+    stagingPreview: $("staging-preview"),
+    reviewPreviewToggle: $("review-preview-toggle"),
     historyBody: $("history-body"),
     docFontFamily: $("doc-font-family"),
     docFontSize: $("doc-font-size"),
@@ -102,6 +105,7 @@ Run:
         mode: "clean",
         compare: false,
         applyScope: "focused",
+        reviewPreview: false,
       },
       docSettings: {
         fontFamily: "Times New Roman",
@@ -731,11 +735,18 @@ Run:
 
   function renderStaging() {
     if (!elements.stagingBody) return;
+    if (elements.reviewPreviewToggle) {
+      elements.reviewPreviewToggle.checked = !!appState.ui.reviewPreview;
+    }
+    if (elements.stagingWrap) {
+      elements.stagingWrap.classList.toggle("preview", !!appState.ui.reviewPreview);
+    }
     elements.stagingBody.innerHTML = "";
     const staged = appState.stagedParagraphs || [];
     if (!staged.length) {
       const emptyText = getContent("messages.stagingEmpty", "No staged paragraphs yet.");
       elements.stagingBody.innerHTML = `<div class="empty-state">${emptyText}</div>`;
+      renderStagingPreview(staged);
       return;
     }
 
@@ -793,6 +804,60 @@ Run:
 
       elements.stagingBody.appendChild(card);
     });
+
+    renderStagingPreview(staged);
+  }
+
+  function renderStagingPreview(staged) {
+    if (!elements.stagingPreview) return;
+    elements.stagingPreview.innerHTML = "";
+    if (!staged.length) {
+      const emptyText = getContent("messages.stagingEmpty", "No staged paragraphs yet.");
+      elements.stagingPreview.innerHTML = `<div class="empty-state">${emptyText}</div>`;
+      return;
+    }
+
+    const settings = appState.docSettings;
+    const fontSizePx = Math.round(settings.fontSize * 1.333);
+    const spacingBeforePx = Math.round(settings.spacingBeforePt * 1.333);
+    const spacingAfterPx = Math.round(settings.spacingAfterPt * 1.333);
+    const indentPx = settings.indentEnabled ? Math.round(settings.firstLineIndentCm * 37.8) : 0;
+
+    const page = document.createElement("div");
+    page.className = "book-page";
+    page.style.fontFamily = settings.fontFamily;
+    page.style.fontSize = `${fontSizePx}px`;
+    page.style.lineHeight = settings.lineSpacing;
+
+    const body = document.createElement("div");
+    body.className = "book-page-body";
+
+    staged.forEach((item) => {
+      const location = findParagraphLocation(item.paragraphId, item.chunkId);
+      const p = document.createElement("p");
+      const styleTag = location?.paragraph?.styleTag || "Normal";
+      const text = location?.paragraph?.editedText || getContent("messages.stagingMissing", "Source paragraph no longer available.");
+
+      const tag = styleTag.toLowerCase();
+      if (tag === "title") p.classList.add("title");
+      if (tag === "heading1") p.classList.add("heading");
+      if (tag === "quote") p.classList.add("quote");
+      if (tag === "poem") p.classList.add("poem");
+
+      p.classList.add("book-para");
+      p.textContent = tag === "poem" ? text : text.replace(/\n+/g, " ");
+      p.style.marginTop = `${spacingBeforePx}px`;
+      p.style.marginBottom = `${spacingAfterPx}px`;
+
+      if (indentPx && !["title", "heading1", "quote"].includes(tag)) {
+        p.style.textIndent = `${indentPx}px`;
+      }
+
+      body.appendChild(p);
+    });
+
+    page.appendChild(body);
+    elements.stagingPreview.appendChild(page);
   }
 
   function renderHistory() {
@@ -1464,6 +1529,14 @@ Run:
       renderCurrentChunk();
     });
 
+    if (elements.reviewPreviewToggle) {
+      elements.reviewPreviewToggle.addEventListener("change", (event) => {
+        appState.ui.reviewPreview = event.target.checked;
+        scheduleSave();
+        renderStaging();
+      });
+    }
+
     elements.analyzeBtn.addEventListener("click", runAnalyze);
     elements.suggestBtn.addEventListener("click", runSuggest);
 
@@ -1505,6 +1578,7 @@ Run:
         appState.docSettings.spacingBeforePt = Number(elements.docSpaceBefore.value);
         appState.docSettings.spacingAfterPt = Number(elements.docSpaceAfter.value);
         scheduleSave();
+        renderStaging();
       });
     });
 

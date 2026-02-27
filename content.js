@@ -77,6 +77,7 @@ window.MCR_CONTENT = {
   panels: {
     reviewQueueTitle: "Review Queue",
     reviewQueueSubtitle: "Stage paragraphs on the right for modular use.",
+    previewToggle: "Preview",
     stagingTitle: "Staged Paragraphs",
     stagingSubtitle: "Send from the editor to collect modular snippets.",
     approvedHistoryTitle: "Approved History",

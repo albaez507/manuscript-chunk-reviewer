@@ -132,6 +132,12 @@
           <div class="panel-title" data-i18n="panels.reviewQueueTitle">Review Queue</div>
           <div class="panel-subtitle" data-i18n="panels.reviewQueueSubtitle">Stage paragraphs on the right for modular use.</div>
         </div>
+        <div class="panel-actions">
+          <label class="toggle">
+            <input id="review-preview-toggle" type="checkbox" />
+            <span data-i18n="panels.previewToggle">Preview</span>
+          </label>
+        </div>
       </div>
       <div class="panel-body">
         <div class="section-block">
@@ -139,7 +145,10 @@
             <div class="panel-title" data-i18n="panels.stagingTitle">Staged Paragraphs</div>
             <div class="panel-subtitle" data-i18n="panels.stagingSubtitle">Send from the editor to collect modular snippets.</div>
           </div>
-          <div id="staging-body" class="staging-body"></div>
+          <div id="staging-wrap" class="staging-wrap">
+            <div id="staging-body" class="staging-body"></div>
+            <div id="staging-preview" class="staging-preview"></div>
+          </div>
         </div>
         <div class="section-divider"></div>
         <div class="section-block">

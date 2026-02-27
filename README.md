@@ -16,6 +16,7 @@ Manuscript Chunk Reviewer is a lightweight, offline-first browser app for review
 - Local rules engine for basic analysis and suggestions.
 - Per-paragraph undo/redo (Ctrl/Cmd + Z, Ctrl/Cmd + Shift + Z).
 - Staging area to send paragraphs to the right panel as modular cards.
+- Preview toggle to view staged paragraphs as a book page.
 - Session persistence in `localStorage` plus JSON import/export.
 - Approved history with inline diff and change log.
 - Custom document settings for `.docx` export.

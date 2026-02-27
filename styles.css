@@ -266,6 +266,60 @@ body {
   gap: 12px;
 }
 
+.staging-wrap.preview .staging-body {
+  display: none;
+}
+
+.staging-preview {
+  display: none;
+}
+
+.staging-wrap.preview .staging-preview {
+  display: block;
+}
+
+.book-page {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px 28px;
+  background: #fffdf8;
+  background-image: url("assets/bg/paper-texture.svg");
+  background-size: cover;
+  box-shadow: 0 12px 24px var(--shadow);
+  min-height: 360px;
+}
+
+.book-page-body {
+  display: grid;
+  gap: 8px;
+}
+
+.book-para {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.book-para.title {
+  text-align: center;
+  font-weight: 600;
+  font-size: 1.2em;
+}
+
+.book-para.heading {
+  font-weight: 600;
+  font-size: 1.05em;
+}
+
+.book-para.quote {
+  font-style: italic;
+  padding-left: 18px;
+  border-left: 3px solid var(--border);
+}
+
+.book-para.poem {
+  white-space: pre-wrap;
+}
+
 .staging-card {
   border: 1px solid var(--border);
   border-radius: 12px;
