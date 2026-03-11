@@ -6,7 +6,7 @@
   <title>Manuscript Chunk Reviewer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;600&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -21,146 +21,363 @@
     </div>
   </div>
 
-  <header class="toolbar">
-    <div class="toolbar-main">
-      <div class="brand">
+  <div id="setup-screen" class="setup-screen">
+    <div class="setup-card">
+      <div class="setup-header">
         <div class="brand-title" data-i18n="brand.title">Manuscript Chunk Reviewer</div>
-        <div id="file-meta" class="brand-subtitle" data-i18n="brand.subtitleNoFile">No file loaded</div>
+        <div class="brand-subtitle">Project setup</div>
       </div>
-      <div class="toolbar-actions">
-        <div class="control">
-          <label class="control-label" for="file-input" data-i18n="toolbar.import">Import</label>
-          <input id="file-input" type="file" accept=".txt,.md,.docx" />
-        </div>
-        <div class="control">
-          <label class="control-label" data-i18n="toolbar.session">Session</label>
-          <div class="button-row">
-            <button id="load-session-btn" class="btn" data-i18n="buttons.loadSession">Load .json</button>
-            <button id="export-session-btn" class="btn" data-i18n="buttons.exportSession">Export .json</button>
+
+      <div class="setup-grid">
+        <div class="setup-section">
+          <div class="section-title">Project</div>
+          <label class="setup-field">
+            <span>Book title</span>
+            <input id="project-title" type="text" placeholder="Untitled book" />
+          </label>
+          <label class="setup-field">
+            <span>Author</span>
+            <input id="project-author" type="text" placeholder="Author name" />
+          </label>
+          <label class="setup-field">
+            <span>Language</span>
+            <select id="project-language">
+              <option value="en">English</option>
+              <option value="es">Spanish</option>
+              <option value="nl">Dutch</option>
+            </select>
+          </label>
+          <label class="setup-field">
+            <span>Book type</span>
+            <select id="project-type">
+              <option value="print">KDP Print</option>
+              <option value="ebook">Kindle eBook</option>
+            </select>
+          </label>
+          <div class="setup-field">
+            <span>Import manuscript (optional)</span>
+            <label class="btn ghost" for="project-file-input">Import</label>
+            <input id="project-file-input" class="file-input" type="file" accept=".txt,.md,.docx" />
           </div>
         </div>
-        <div class="control">
-          <label class="control-label" data-i18n="toolbar.export">Export</label>
-          <div class="button-row">
-            <button id="export-txt-btn" class="btn" data-i18n="buttons.exportTxt">Final .txt</button>
-            <button id="export-docx-btn" class="btn primary" data-i18n="buttons.exportDocx">Final .docx</button>
+
+        <div id="project-print-settings" class="setup-section">
+          <div class="section-title">KDP Print Settings</div>
+          <div class="setup-row">
+            <label class="setup-field">
+              <span>Trim size</span>
+              <select id="project-trim-size">
+                <option value="5x8">5" x 8"</option>
+                <option value="5.25x8">5.25" x 8"</option>
+                <option value="5.5x8.5">5.5" x 8.5"</option>
+                <option value="6x9" selected>6" x 9"</option>
+                <option value="8.5x11">8.5" x 11"</option>
+              </select>
+            </label>
+            <label class="setup-field">
+              <span>Bleed</span>
+              <select id="project-bleed">
+                <option value="off">No bleed</option>
+                <option value="on">Bleed</option>
+              </select>
+            </label>
           </div>
+          <div class="setup-row">
+            <label class="setup-field">
+              <span>Top (in)</span>
+              <input id="project-margin-top" type="number" min="0.25" max="2" step="0.05" value="0.75" />
+            </label>
+            <label class="setup-field">
+              <span>Bottom (in)</span>
+              <input id="project-margin-bottom" type="number" min="0.25" max="2" step="0.05" value="0.75" />
+            </label>
+          </div>
+          <div class="setup-row">
+            <label class="setup-field">
+              <span>Inside (in)</span>
+              <input id="project-margin-inside" type="number" min="0.25" max="2" step="0.05" value="0.75" />
+            </label>
+            <label class="setup-field">
+              <span>Outside (in)</span>
+              <input id="project-margin-outside" type="number" min="0.25" max="2" step="0.05" value="0.5" />
+            </label>
+          </div>
+          <div class="setup-row">
+            <label class="setup-field">
+              <span>Gutter (in)</span>
+              <input id="project-gutter" type="number" min="0" max="1" step="0.05" value="0.13" />
+            </label>
+            <label class="setup-field">
+              <span>Mirror margins</span>
+              <select id="project-mirror">
+                <option value="on">On</option>
+                <option value="off">Off</option>
+              </select>
+            </label>
+          </div>
+          <label class="setup-field">
+            <span>Page side</span>
+            <select id="project-page-side">
+              <option value="auto">Auto (by page #)</option>
+              <option value="right">Right page</option>
+              <option value="left">Left page</option>
+            </select>
+          </label>
+          <label class="setup-field">
+            <span>Header text</span>
+            <input id="project-header-text" type="text" placeholder="{title} or {page}" />
+          </label>
+          <label class="setup-field">
+            <span>Footer text</span>
+            <input id="project-footer-text" type="text" placeholder="{title} or {page}" />
+          </label>
+          <label class="setup-field">
+            <span>Page number position</span>
+            <select id="project-page-number-position">
+              <option value="none">Off</option>
+              <option value="header-right">Header right</option>
+              <option value="header-center">Header center</option>
+              <option value="footer-right">Footer right</option>
+              <option value="footer-center" selected>Footer center</option>
+            </select>
+          </label>
         </div>
-        <div class="control">
-          <label class="control-label" data-i18n="toolbar.docSettings">Doc Settings</label>
-          <button id="doc-settings-btn" class="btn" data-i18n="buttons.docSettingsOpen">Open</button>
-        </div>
-      </div>
-    </div>
 
-    <div class="toolbar-secondary">
-      <div class="control wide">
-        <label class="control-label" for="chunk-size" data-i18n="toolbar.chunkSizeTarget">Chunk size target</label>
-        <div class="range-row">
-          <input id="chunk-size" type="range" min="400" max="2000" step="50" />
-          <span id="chunk-size-value" class="range-value">1000</span>
-          <button id="rechunk-btn" class="btn" data-i18n="buttons.rechunk">Rechunk</button>
-        </div>
-      </div>
-      <div class="control">
-        <label class="control-label" for="layout-preset" data-i18n="toolbar.layout">Layout</label>
-        <select id="layout-preset">
-          <option value="editor" data-i18n="options.layout.editor">Editor Focus (70/30)</option>
-          <option value="balanced" data-i18n="options.layout.balanced">Balanced (50/50)</option>
-          <option value="review" data-i18n="options.layout.review">Review Focus (40/60)</option>
-        </select>
-      </div>
-      <div class="control">
-        <label class="control-label" for="engine-select" data-i18n="toolbar.engine">Engine</label>
-        <select id="engine-select">
-          <option value="local" data-i18n="options.engine.local">Local (offline)</option>
-          <option value="ai" disabled data-i18n="options.engine.ai">AI (placeholder)</option>
-        </select>
-      </div>
-      <div class="control">
-        <label class="control-label" for="mode-select" data-i18n="toolbar.mode">Mode</label>
-        <select id="mode-select">
-          <option value="clean" data-i18n="options.mode.clean">Clean Structure</option>
-          <option value="punct" data-i18n="options.mode.punct">Punctuation/Spelling</option>
-          <option value="translation" data-i18n="options.mode.translation">Faithful Translation (future)</option>
-          <option value="style" data-i18n="options.mode.style">Style (future)</option>
-        </select>
-      </div>
-      <div class="control">
-        <label class="control-label" for="apply-scope" data-i18n="toolbar.applyScope">Apply to</label>
-        <select id="apply-scope">
-          <option value="focused" data-i18n="options.applyScope.focused">Focused paragraph</option>
-          <option value="all" data-i18n="options.applyScope.all">All in chunk</option>
-        </select>
-      </div>
-      <div class="control">
-        <label class="control-label" data-i18n="toolbar.actions">Actions</label>
-        <div class="button-row">
-          <button id="analyze-btn" class="btn" data-i18n="buttons.analyze">Analyze</button>
-          <button id="suggest-btn" class="btn primary" data-i18n="buttons.suggest">Suggest</button>
-        </div>
-      </div>
-      <div class="control">
-        <label class="control-label" data-i18n="toolbar.compare">Compare</label>
-        <label class="toggle">
-          <input id="compare-toggle" type="checkbox" />
-          <span data-i18n="toolbar.compareToggle">Side-by-side</span>
-        </label>
-      </div>
-    </div>
-  </header>
-
-  <main class="workspace">
-    <section class="panel editor-panel">
-      <div class="panel-header">
-        <div>
-          <div id="chunk-info" class="panel-title">No chunks loaded</div>
-          <div id="chunk-stats" class="panel-subtitle"></div>
-        </div>
-        <div class="panel-actions">
-          <button id="reset-chunk-btn" class="btn" data-i18n="buttons.reset">Reset</button>
-          <button id="skip-chunk-btn" class="btn" data-i18n="buttons.skip">Skip</button>
-          <button id="approve-chunk-btn" class="btn primary" data-i18n="buttons.approve">Approve</button>
-        </div>
-      </div>
-      <div id="editor-body" class="panel-body"></div>
-    </section>
-
-    <section class="panel history-panel">
-      <div class="panel-header">
-        <div>
-          <div class="panel-title" data-i18n="panels.reviewQueueTitle">Review Queue</div>
-          <div class="panel-subtitle" data-i18n="panels.reviewQueueSubtitle">Stage paragraphs on the right for modular use.</div>
-        </div>
-        <div class="panel-actions">
-          <label class="toggle">
-            <input id="review-preview-toggle" type="checkbox" />
-            <span data-i18n="panels.previewToggle">Preview</span>
+        <div class="setup-section">
+          <div class="section-title">Typography</div>
+          <label class="setup-field">
+            <span>Font</span>
+            <select id="project-font-family">
+              <option value="Times New Roman">Times New Roman</option>
+              <option value="Georgia">Georgia</option>
+              <option value="Garamond">Garamond</option>
+            </select>
+          </label>
+          <label class="setup-field">
+            <span>Base font size (pt)</span>
+            <input id="project-font-size" type="number" min="10" max="14" step="1" value="12" />
+          </label>
+          <label class="setup-field">
+            <span>Line spacing</span>
+            <input id="project-line-spacing" type="number" min="1.0" max="2.0" step="0.1" value="1.2" />
+          </label>
+          <label class="setup-field">
+            <span>First-line indent (cm)</span>
+            <input id="project-indent-size" type="number" min="0" max="2" step="0.1" value="0.5" />
+          </label>
+          <label class="setup-field">
+            <span>Spacing before (pt)</span>
+            <input id="project-space-before" type="number" min="0" max="24" step="1" value="0" />
+          </label>
+          <label class="setup-field">
+            <span>Spacing after (pt)</span>
+            <input id="project-space-after" type="number" min="0" max="24" step="1" value="6" />
           </label>
         </div>
       </div>
-      <div class="panel-body">
-        <div class="section-block">
-          <div class="section-header">
-            <div class="panel-title" data-i18n="panels.stagingTitle">Staged Paragraphs</div>
-            <div class="panel-subtitle" data-i18n="panels.stagingSubtitle">Send from the editor to collect modular snippets.</div>
+
+      <div class="setup-footer">
+        <div id="project-validation" class="setup-validation"></div>
+        <button id="project-start-btn" class="btn primary">Start editing</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="editor-shell" class="app-shell hidden">
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-title" data-i18n="brand.title">Manuscript Chunk Reviewer</div>
+        <div id="file-meta" class="brand-subtitle" data-i18n="brand.subtitleNoFile">No file loaded</div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="section-title">Outline</div>
+        <div class="outline-block">
+          <div class="outline-actions">
+            <button id="add-front-btn" class="btn ghost">+ Front</button>
+            <button id="add-body-btn" class="btn ghost">+ Body</button>
+            <button id="add-back-btn" class="btn ghost">+ Back</button>
           </div>
-          <div id="staging-wrap" class="staging-wrap">
-            <div id="staging-body" class="staging-body"></div>
-            <div id="staging-preview" class="staging-preview"></div>
+          <div class="outline-section">
+            <div class="outline-title">Front Matter</div>
+            <div id="outline-front" class="outline-list"></div>
           </div>
-        </div>
-        <div class="section-divider"></div>
-        <div class="section-block">
-          <div class="section-header">
-            <div class="panel-title" data-i18n="panels.approvedHistoryTitle">Approved History</div>
-            <div class="panel-subtitle" data-i18n="panels.approvedHistorySubtitle">Inline diff + traceable change log</div>
+          <div class="outline-section">
+            <div class="outline-title">Body</div>
+            <div id="outline-body" class="outline-list"></div>
           </div>
-          <div id="history-body" class="history-body"></div>
+          <div class="outline-section">
+            <div class="outline-title">Back Matter</div>
+            <div id="outline-back" class="outline-list"></div>
+          </div>
         </div>
       </div>
-    </section>
-  </main>
+
+      <div class="sidebar-section">
+        <div class="section-title">Pagination</div>
+        <button id="paginate-btn" class="btn">Paginate</button>
+        <button id="project-settings-btn" class="btn ghost">Project settings</button>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="section-title">Editor</div>
+        <div class="hint">Focused layout mode.</div>
+      </div>
+    </aside>
+
+    <div class="content-area">
+      <header class="topbar">
+        <div class="page-meta">
+          <div id="page-info" class="page-title">No pages loaded</div>
+          <div id="page-stats" class="page-subtitle"></div>
+        </div>
+        <div class="page-controls">
+          <select id="page-section">
+            <option value="front">Front Matter</option>
+            <option value="body">Body</option>
+            <option value="back">Back Matter</option>
+          </select>
+          <input id="page-title" type="text" placeholder="Page title" />
+        </div>
+        <div class="topbar-actions">
+          <button id="prev-page-btn" class="btn ghost" data-i18n="buttons.prevPage">Prev Page</button>
+          <button id="next-page-btn" class="btn ghost" data-i18n="buttons.nextPage">Next Page</button>
+        </div>
+      </header>
+
+      <main class="workspace">
+        <section class="panel editor-panel">
+          <div id="editor-body" class="panel-body"></div>
+        </section>
+
+        <div id="splitter" class="splitter" aria-hidden="true"></div>
+
+        <section class="panel properties-panel">
+          <div class="panel-header properties-header">
+            <div>
+              <div class="panel-title">Properties</div>
+              <div class="panel-subtitle">Elements and formatting</div>
+            </div>
+            <div class="tab-group">
+              <button id="properties-tab-elements" class="tab-btn active" type="button">Elements</button>
+              <button id="properties-tab-formatting" class="tab-btn" type="button">Formatting</button>
+            </div>
+          </div>
+          <div class="panel-body properties-body">
+            <div id="properties-elements" class="properties-section active">
+              <div class="properties-current">
+                <div class="properties-label">Current element</div>
+                <div class="properties-current-row">
+                  <div id="properties-current" class="properties-current-value">Normal</div>
+                  <button id="properties-clear" class="btn ghost small" type="button">Clear</button>
+                </div>
+              </div>
+
+              <div class="properties-group">
+                <div class="properties-group-title">Title Pages</div>
+                <div class="properties-grid">
+                  <button class="properties-item" data-style="Book Title" type="button">Book Title</button>
+                  <button class="properties-item" data-style="Book Subtitle" type="button">Book Subtitle</button>
+                  <button class="properties-item" data-style="Author Name" type="button">Author Name</button>
+                  <button class="properties-item" data-style="Part Title" type="button">Part Title</button>
+                  <button class="properties-item" data-style="Part Subtitle" type="button">Part Subtitle</button>
+                </div>
+              </div>
+
+              <div class="properties-group">
+                <div class="properties-group-title">Book Start and End Pages</div>
+                <div class="properties-grid">
+                  <button class="properties-item" data-style="Page Title" type="button">Page Title</button>
+                  <button class="properties-item" data-style="First Paragraph" type="button">First Paragraph</button>
+                  <button class="properties-item" data-style="Dedication" type="button">Dedication</button>
+                  <button class="properties-item" data-style="Opening Quote" type="button">Opening Quote</button>
+                  <button class="properties-item" data-style="Opening Quote Credit" type="button">Opening Quote Credit</button>
+                  <button class="properties-item" data-style="Copyright Text" type="button">Copyright Text</button>
+                </div>
+              </div>
+
+              <div class="properties-group">
+                <div class="properties-group-title">Common Elements</div>
+                <div class="properties-grid">
+                  <button class="properties-item" data-style="Chapter Title" type="button">Chapter Title</button>
+                  <button class="properties-item" data-style="Chapter Subtitle" type="button">Chapter Subtitle</button>
+                  <button class="properties-item" data-style="Chapter First Paragraph" type="button">Chapter First Paragraph</button>
+                  <button class="properties-item" data-style="Separator" type="button">Separator</button>
+                </div>
+              </div>
+
+              <div class="properties-group">
+                <div class="properties-group-title">Book Body</div>
+                <div class="properties-grid">
+                  <button class="properties-item" data-style="Block Quote" type="button">Block Quote</button>
+                  <button class="properties-item" data-style="Poem" type="button">Poem</button>
+                </div>
+              </div>
+            </div>
+
+            <div id="properties-formatting" class="properties-section">
+              <div class="properties-group">
+                <div class="properties-group-title">Font</div>
+                <label class="properties-field">
+                  <span>Family</span>
+                  <select id="format-font-family">
+                    <option value="Times New Roman">Times New Roman</option>
+                    <option value="Georgia">Georgia</option>
+                    <option value="Garamond">Garamond</option>
+                  </select>
+                </label>
+                <label class="properties-field">
+                  <span>Size (pt)</span>
+                  <input id="format-font-size" type="number" min="10" max="14" step="1" />
+                </label>
+                <label class="properties-field">
+                  <span>Line spacing</span>
+                  <input id="format-line-spacing" type="number" min="1.0" max="2.0" step="0.1" />
+                </label>
+              </div>
+
+              <div class="properties-group">
+                <div class="properties-group-title">Paragraph</div>
+                <label class="properties-field">
+                  <span>Alignment</span>
+                  <select id="format-align">
+                    <option value="left">Left</option>
+                    <option value="center">Center</option>
+                    <option value="right">Right</option>
+                    <option value="justify">Justify</option>
+                  </select>
+                </label>
+                <label class="properties-field">
+                  <span>First-line indent (cm)</span>
+                  <input id="format-indent" type="number" min="0" max="2" step="0.1" />
+                </label>
+              </div>
+
+              <div class="properties-group">
+                <div class="properties-group-title">Spacing</div>
+                <label class="properties-field">
+                  <span>Before (pt)</span>
+                  <input id="format-spacing-before" type="number" min="0" max="24" step="1" />
+                </label>
+                <label class="properties-field">
+                  <span>After (pt)</span>
+                  <input id="format-spacing-after" type="number" min="0" max="24" step="1" />
+                </label>
+              </div>
+
+              <div class="properties-group">
+                <div class="properties-group-title">Advanced</div>
+                <label class="properties-toggle">
+                  <input id="format-drop-cap" type="checkbox" disabled />
+                  <span>Drop Cap (coming soon)</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
 
   <div id="doc-settings-modal" class="modal hidden" role="dialog" aria-modal="true">
     <div class="modal-card">
@@ -173,6 +390,42 @@
       </div>
       <div class="modal-body">
         <div class="form-grid">
+          <label>
+            <span data-i18n="docSettings.trimSize">Trim size</span>
+            <select id="doc-trim-size">
+              <option value="5x8" data-i18n="options.trimSize.5x8">5" x 8"</option>
+              <option value="5.25x8" data-i18n="options.trimSize.5.25x8">5.25" x 8"</option>
+              <option value="5.5x8.5" data-i18n="options.trimSize.5.5x8.5">5.5" x 8.5"</option>
+              <option value="6x9" data-i18n="options.trimSize.6x9">6" x 9"</option>
+              <option value="8.5x11" data-i18n="options.trimSize.8.5x11">8.5" x 11"</option>
+            </select>
+          </label>
+          <label>
+            <span data-i18n="docSettings.pageSide">Page side</span>
+            <select id="doc-page-side">
+              <option value="auto" data-i18n="options.pageSide.auto">Auto (by page #)</option>
+              <option value="right" data-i18n="options.pageSide.right">Right page</option>
+              <option value="left" data-i18n="options.pageSide.left">Left page</option>
+            </select>
+          </label>
+          <label>
+            <span data-i18n="docSettings.headerText">Header text</span>
+            <input id="doc-header-text" type="text" placeholder="Title or {page}" />
+          </label>
+          <label>
+            <span data-i18n="docSettings.footerText">Footer text</span>
+            <input id="doc-footer-text" type="text" placeholder="Title or {page}" />
+          </label>
+          <label>
+            <span data-i18n="docSettings.pageNumberPosition">Page number position</span>
+            <select id="doc-page-number-position">
+              <option value="none" data-i18n="options.pageNumber.none">Off</option>
+              <option value="header-right" data-i18n="options.pageNumber.headerRight">Header right</option>
+              <option value="header-center" data-i18n="options.pageNumber.headerCenter">Header center</option>
+              <option value="footer-right" data-i18n="options.pageNumber.footerRight">Footer right</option>
+              <option value="footer-center" data-i18n="options.pageNumber.footerCenter">Footer center</option>
+            </select>
+          </label>
           <label>
             <span data-i18n="docSettings.fontFamily">Font family</span>
             <select id="doc-font-family">
@@ -194,6 +447,30 @@
             <select id="doc-margins">
               <option value="clean" data-i18n="options.margins.clean">Clean Book</option>
             </select>
+          </label>
+          <label>
+            <span data-i18n="docSettings.marginTop">Top margin (in)</span>
+            <input id="doc-margin-top" type="number" min="0.25" max="2" step="0.05" />
+          </label>
+          <label>
+            <span data-i18n="docSettings.marginBottom">Bottom margin (in)</span>
+            <input id="doc-margin-bottom" type="number" min="0.25" max="2" step="0.05" />
+          </label>
+          <label>
+            <span data-i18n="docSettings.marginInside">Inside margin (in)</span>
+            <input id="doc-margin-inside" type="number" min="0.25" max="2" step="0.05" />
+          </label>
+          <label>
+            <span data-i18n="docSettings.marginOutside">Outside margin (in)</span>
+            <input id="doc-margin-outside" type="number" min="0.25" max="2" step="0.05" />
+          </label>
+          <label>
+            <span data-i18n="docSettings.gutter">Gutter (in)</span>
+            <input id="doc-gutter" type="number" min="0" max="1" step="0.05" />
+          </label>
+          <label>
+            <span data-i18n="docSettings.mirrorMargins">Mirror margins</span>
+            <input id="doc-mirror-margins" type="checkbox" />
           </label>
           <label>
             <span data-i18n="docSettings.firstLineIndent">First-line indent (cm)</span>
@@ -218,6 +495,7 @@
 
   <input id="session-input" type="file" accept=".json" hidden />
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script src="https://unpkg.com/mammoth/mammoth.browser.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/diff_match_patch/20121119/diff_match_patch.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/docx/7.7.1/docx.umd.js"></script>

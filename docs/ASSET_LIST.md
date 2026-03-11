@@ -5,13 +5,7 @@
 - `assets/bg/paper-texture.svg`
 
 ### Icons
-- `assets/icons/import.svg`
-- `assets/icons/export.svg`
-- `assets/icons/analyze.svg`
-- `assets/icons/suggest.svg`
-- `assets/icons/approve.svg`
-- `assets/icons/skip.svg`
-- `assets/icons/reset.svg`
+- (unused)
 
 ### Illustrations
 - `assets/illustrations/empty-state.svg`
