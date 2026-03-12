@@ -21,7 +21,41 @@
     </div>
   </div>
 
-  <div id="setup-screen" class="setup-screen">
+  <div id="dashboard-screen" class="dashboard-screen">
+    <div class="dashboard-card">
+      <div class="setup-header">
+        <div class="brand-title" data-i18n="brand.title">Manuscript Chunk Reviewer</div>
+        <div class="brand-subtitle">KDP Print workspace</div>
+      </div>
+      <div class="dashboard-grid">
+        <section class="dashboard-panel">
+          <div class="section-title">Start</div>
+          <h3>Create a new KDP project</h3>
+          <p class="hint">Trim, margins, bleed, and typography presets for paperback interiors.</p>
+          <button id="dashboard-new-project" class="btn primary">New KDP Project</button>
+        </section>
+        <section class="dashboard-panel">
+          <div class="section-title">Continue</div>
+          <h3>Resume local session</h3>
+          <p id="dashboard-resume-meta" class="hint">No local session found.</p>
+          <button id="dashboard-resume" class="btn">Resume Last Session</button>
+        </section>
+        <section class="dashboard-panel">
+          <div class="section-title">Import</div>
+          <h3>Load JSON session</h3>
+          <p class="hint">Open a previous project session export and continue editing.</p>
+          <button id="load-session-btn" class="btn ghost">Import Session JSON</button>
+        </section>
+        <section class="dashboard-panel dashboard-recent-panel">
+          <div class="section-title">Recent Projects</div>
+          <h3>Open, rename, or delete</h3>
+          <div id="dashboard-recent-list" class="recent-list"></div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <div id="setup-screen" class="setup-screen hidden">
     <div class="setup-card">
       <div class="setup-header">
         <div class="brand-title" data-i18n="brand.title">Manuscript Chunk Reviewer</div>
@@ -48,11 +82,8 @@
             </select>
           </label>
           <label class="setup-field">
-            <span>Book type</span>
-            <select id="project-type">
-              <option value="print">KDP Print</option>
-              <option value="ebook">Kindle eBook</option>
-            </select>
+            <span>Publishing target</span>
+            <input id="project-type" type="text" value="Amazon KDP Print" readonly />
           </label>
           <div class="setup-field">
             <span>Import manuscript (optional)</span>
@@ -178,7 +209,7 @@
 
       <div class="setup-footer">
         <div id="project-validation" class="setup-validation"></div>
-        <button id="project-start-btn" class="btn primary">Start editing</button>
+        <button id="project-start-btn" class="btn primary">Start KDP layout</button>
       </div>
     </div>
   </div>
@@ -217,6 +248,14 @@
         <div class="section-title">Pagination</div>
         <button id="paginate-btn" class="btn">Paginate</button>
         <button id="project-settings-btn" class="btn ghost">Project settings</button>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="section-title">KDP Preflight</div>
+        <div id="preflight-summary" class="hint">Preflight pending.</div>
+        <div id="preflight-list" class="preflight-list"></div>
+        <button id="export-pdf-btn" class="btn primary">Export KDP PDF</button>
+        <button id="export-docx-btn" class="btn ghost">Export DOCX Backup</button>
       </div>
 
       <div class="sidebar-section">

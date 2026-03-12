@@ -7,6 +7,9 @@ Run:
 
 (() => {
   const STORAGE_KEY = "mcr_state_v1";
+  const PROJECT_INDEX_KEY = "mcr_projects_index_v1";
+  const PROJECT_STORAGE_PREFIX = "mcr_project_v1_";
+  const MAX_RECENT_PROJECTS = 12;
   const EMPTY_STATE_ILLUSTRATION = "assets/illustrations/empty-state.svg";
   const CONTENT = window.MCR_CONTENT || {};
   const STYLE_EXPORT_MAP = {
@@ -43,6 +46,11 @@ Run:
   const $ = (id) => document.getElementById(id);
 
   const elements = {
+    dashboardScreen: $("dashboard-screen"),
+    dashboardNewProjectBtn: $("dashboard-new-project"),
+    dashboardResumeBtn: $("dashboard-resume"),
+    dashboardResumeMeta: $("dashboard-resume-meta"),
+    dashboardRecentList: $("dashboard-recent-list"),
     setupScreen: $("setup-screen"),
     editorShell: $("editor-shell"),
     projectTitle: $("project-title"),
@@ -87,7 +95,10 @@ Run:
     loadSessionBtn: $("load-session-btn"),
     exportSessionBtn: $("export-session-btn"),
     exportTxtBtn: $("export-txt-btn"),
+    exportPdfBtn: $("export-pdf-btn"),
     exportDocxBtn: $("export-docx-btn"),
+    preflightSummary: $("preflight-summary"),
+    preflightList: $("preflight-list"),
     docSettingsBtn: $("doc-settings-btn"),
     docSettingsModal: $("doc-settings-modal"),
     docSettingsClose: $("doc-settings-close"),
@@ -173,6 +184,7 @@ Run:
         importedAt: "",
       },
       project: {
+        id: uid("proj"),
         title: "",
         author: "",
         language: "en",
@@ -181,7 +193,7 @@ Run:
         pageCountOverride: null,
       },
       ui: {
-        view: "setup",
+        view: "dashboard",
       },
       docSettings: {
         trimSize: "6x9",
@@ -223,6 +235,7 @@ Run:
     saveTimer = setTimeout(() => {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+        persistCurrentProjectSnapshot();
       } catch (err) {
         console.warn("Unable to save state", err);
       }
@@ -254,6 +267,116 @@ Run:
     } catch (err) {
       console.warn("Unable to parse stored state", err);
     }
+  }
+
+  function getProjectStorageKey(projectId) {
+    return `${PROJECT_STORAGE_PREFIX}${projectId}`;
+  }
+
+  function loadProjectIndex() {
+    try {
+      const raw = localStorage.getItem(PROJECT_INDEX_KEY);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (err) {
+      console.warn("Unable to parse project index", err);
+      return [];
+    }
+  }
+
+  function saveProjectIndex(entries) {
+    try {
+      localStorage.setItem(PROJECT_INDEX_KEY, JSON.stringify(entries.slice(0, MAX_RECENT_PROJECTS)));
+    } catch (err) {
+      console.warn("Unable to save project index", err);
+    }
+  }
+
+  function hasProjectContent(state) {
+    if (!state) return false;
+    const title = state.project?.title?.trim?.() || "";
+    const author = state.project?.author?.trim?.() || "";
+    const fileName = state.meta?.fileName?.trim?.() || "";
+    const pageCount = Array.isArray(state.pages) ? state.pages.length : 0;
+    const source = state.sourceText?.trim?.() || "";
+    return Boolean(title || author || fileName || source || pageCount);
+  }
+
+  function projectDisplayName(state, fallback = "Untitled project") {
+    const title = state.project?.title?.trim?.();
+    if (title) return title;
+    const fileName = state.meta?.fileName?.trim?.();
+    if (fileName) return fileName.replace(/\.[^/.]+$/, "");
+    return fallback;
+  }
+
+  function persistCurrentProjectSnapshot() {
+    if (!hasProjectContent(appState)) return;
+    if (!appState.project.id) {
+      appState.project.id = uid("proj");
+    }
+    const projectId = appState.project.id;
+    const entry = {
+      id: projectId,
+      title: projectDisplayName(appState),
+      fileName: appState.meta?.fileName || "",
+      author: appState.project?.author || "",
+      language: appState.project?.language || "en",
+      trimSize: appState.docSettings?.trimSize || "6x9",
+      pageCount: Array.isArray(appState.pages) ? appState.pages.length : 0,
+      updatedAt: new Date().toISOString(),
+    };
+
+    try {
+      localStorage.setItem(getProjectStorageKey(projectId), JSON.stringify(appState));
+    } catch (err) {
+      console.warn("Unable to save project snapshot", err);
+      return;
+    }
+
+    const index = loadProjectIndex().filter((item) => item && item.id && item.id !== projectId);
+    index.unshift(entry);
+    saveProjectIndex(index);
+  }
+
+  function loadProjectById(projectId) {
+    if (!projectId) return null;
+    try {
+      const raw = localStorage.getItem(getProjectStorageKey(projectId));
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch (err) {
+      console.warn("Unable to load project snapshot", err);
+      return null;
+    }
+  }
+
+  function deleteProjectById(projectId) {
+    if (!projectId) return;
+    localStorage.removeItem(getProjectStorageKey(projectId));
+    const index = loadProjectIndex().filter((item) => item && item.id !== projectId);
+    saveProjectIndex(index);
+  }
+
+  function renameProjectById(projectId, nextTitle) {
+    if (!projectId || !nextTitle) return;
+    const snapshot = loadProjectById(projectId);
+    if (snapshot && snapshot.project) {
+      snapshot.project.title = nextTitle;
+      try {
+        localStorage.setItem(getProjectStorageKey(projectId), JSON.stringify(snapshot));
+      } catch (err) {
+        console.warn("Unable to save renamed project snapshot", err);
+      }
+    }
+    const index = loadProjectIndex().map((item) => {
+      if (item && item.id === projectId) {
+        return { ...item, title: nextTitle, updatedAt: new Date().toISOString() };
+      }
+      return item;
+    });
+    saveProjectIndex(index);
   }
 
   function ensureHistory(para) {
@@ -297,6 +420,10 @@ Run:
           ? state.currentChunkIndex
           : 0,
     };
+    merged.project.type = "print";
+    if (!merged.project.id) {
+      merged.project.id = uid("proj");
+    }
 
     merged.pages.forEach((page, pageIndex) => {
       if (!Array.isArray(page.paragraphs)) {
@@ -512,11 +639,7 @@ Run:
 
     const count = pageCount || 24;
     const countLabel = pageCount ? `${pageCount} pages` : "estimated pages";
-    let minInside = 0.375;
-    if (count >= 151 && count <= 300) minInside = 0.5;
-    if (count >= 301 && count <= 500) minInside = 0.625;
-    if (count >= 501 && count <= 700) minInside = 0.75;
-    if (count >= 701) minInside = 0.875;
+    const minInside = minimumInsideMarginForPageCount(count);
 
     if (settings.marginInsideIn < minInside) {
       issues.push(`Inside margin must be >= ${minInside}" for ${countLabel}`);
@@ -527,10 +650,87 @@ Run:
     if (Math.abs(settings.marginInsideIn - settings.gutterIn) > 0.01) {
       issues.push("Inside margin and gutter should match for KDP Print.");
     }
-    if (pageCount && pageCount < 24) {
+    if (!pageCount) {
+      issues.push("Document has no pages.");
+    }
+    if (pageCount < 24) {
       issues.push("KDP Print requires a minimum of 24 pages.");
     }
     return issues;
+  }
+
+  function minimumInsideMarginForPageCount(pageCount) {
+    const count = pageCount || 24;
+    if (count >= 701) return 0.875;
+    if (count >= 501) return 0.75;
+    if (count >= 301) return 0.625;
+    if (count >= 151) return 0.5;
+    return 0.375;
+  }
+
+  function getKdpPreflightChecks(settings, pageCount, bleed) {
+    const minOuter = bleed ? 0.375 : 0.25;
+    const minInside = minimumInsideMarginForPageCount(pageCount || 24);
+    return [
+      {
+        label: "Page count",
+        ok: pageCount >= 24,
+        detail: `${pageCount} / 24 minimum`,
+      },
+      {
+        label: "Top/Bottom/Outside margins",
+        ok:
+          settings.marginTopIn >= minOuter &&
+          settings.marginBottomIn >= minOuter &&
+          settings.marginOutsideIn >= minOuter,
+        detail: `Need >= ${minOuter}"`,
+      },
+      {
+        label: "Inside margin",
+        ok: settings.marginInsideIn >= minInside,
+        detail: `Need >= ${minInside}"`,
+      },
+      {
+        label: "Gutter",
+        ok: settings.gutterIn >= minInside,
+        detail: `Need >= ${minInside}"`,
+      },
+      {
+        label: "Inside = Gutter",
+        ok: Math.abs(settings.marginInsideIn - settings.gutterIn) <= 0.01,
+        detail: `${settings.marginInsideIn}" vs ${settings.gutterIn}"`,
+      },
+    ];
+  }
+
+  function renderKdpPreflight() {
+    if (!elements.preflightSummary || !elements.preflightList) return;
+    const pageCount = appState.pages.length;
+    const checks = getKdpPreflightChecks(appState.docSettings, pageCount, appState.project.bleed);
+    const passed = checks.filter((item) => item.ok).length;
+    const total = checks.length;
+    elements.preflightSummary.textContent =
+      passed === total ? `Preflight: Ready (${pageCount} pages)` : `Preflight: ${passed}/${total} checks passed`;
+
+    elements.preflightList.innerHTML = "";
+    checks.forEach((check) => {
+      const row = document.createElement("div");
+      row.className = `preflight-item ${check.ok ? "ok" : "fail"}`;
+      const status = check.ok ? "PASS" : "FIX";
+      row.textContent = `${status} - ${check.label} (${check.detail})`;
+      elements.preflightList.appendChild(row);
+    });
+  }
+
+  function buildKdpValidationMessage(settings, pageCount, bleed) {
+    if (!pageCount) {
+      return "KDP check: Add content and paginate to reach at least 24 pages.";
+    }
+    const issues = validatePrintSettings(settings, pageCount, bleed);
+    if (issues.length) {
+      return `KDP check: ${issues.join(" | ")}`;
+    }
+    return `KDP check: Ready (${pageCount} pages).`;
   }
 
   function createParagraphFromText(text) {
@@ -725,8 +925,143 @@ Run:
     return calcTextStats(text);
   }
 
+  function resumePendingSession() {
+    if (!pendingStoredState) return;
+    appState = hydrateState(pendingStoredState);
+    pendingStoredState = null;
+    if (elements.resumeBanner) {
+      elements.resumeBanner.classList.add("hidden");
+    }
+    if (appState.ui.view === "dashboard") {
+      appState.ui.view = "editor";
+    }
+    scheduleSave();
+    render();
+  }
+
+  function startNewKdpProject() {
+    appState = createDefaultState();
+    appState.ui.view = "setup";
+    pendingStoredState = null;
+    if (elements.resumeBanner) {
+      elements.resumeBanner.classList.add("hidden");
+    }
+    scheduleSave();
+    render();
+  }
+
+  function openRecentProject(projectId) {
+    const snapshot = loadProjectById(projectId);
+    if (!snapshot) {
+      alert("Unable to open this project snapshot.");
+      return;
+    }
+    appState = hydrateState(snapshot);
+    appState.ui.view = "editor";
+    pendingStoredState = null;
+    if (elements.resumeBanner) {
+      elements.resumeBanner.classList.add("hidden");
+    }
+    scheduleSave();
+    render();
+  }
+
+  function renderDashboardRecentList() {
+    if (!elements.dashboardRecentList) return;
+    const projects = loadProjectIndex();
+    elements.dashboardRecentList.innerHTML = "";
+    if (!projects.length) {
+      const empty = document.createElement("div");
+      empty.className = "hint";
+      empty.textContent = "No recent projects yet.";
+      elements.dashboardRecentList.appendChild(empty);
+      return;
+    }
+
+    projects.forEach((project) => {
+      const row = document.createElement("div");
+      row.className = "recent-item";
+
+      const info = document.createElement("div");
+      info.className = "recent-meta";
+      const title = document.createElement("div");
+      title.className = "recent-title";
+      title.textContent = project.title || "Untitled project";
+      const details = document.createElement("div");
+      details.className = "hint";
+      const when = project.updatedAt ? new Date(project.updatedAt).toLocaleString() : "";
+      details.textContent = `${project.trimSize || "6x9"} | ${project.pageCount || 0} pages${when ? ` | ${when}` : ""}`;
+      info.appendChild(title);
+      info.appendChild(details);
+
+      const actions = document.createElement("div");
+      actions.className = "recent-actions";
+
+      const openBtn = document.createElement("button");
+      openBtn.className = "btn small";
+      openBtn.textContent = "Open";
+      openBtn.addEventListener("click", () => openRecentProject(project.id));
+
+      const renameBtn = document.createElement("button");
+      renameBtn.className = "btn small ghost";
+      renameBtn.textContent = "Rename";
+      renameBtn.addEventListener("click", () => {
+        const next = prompt("Project title:", project.title || "Untitled project");
+        const clean = next ? next.trim() : "";
+        if (!clean) return;
+        renameProjectById(project.id, clean);
+        renderDashboardRecentList();
+      });
+
+      const deleteBtn = document.createElement("button");
+      deleteBtn.className = "btn small";
+      deleteBtn.textContent = "Delete";
+      deleteBtn.addEventListener("click", () => {
+        if (!confirm("Delete this project snapshot?")) return;
+        deleteProjectById(project.id);
+        renderDashboardRecentList();
+      });
+
+      actions.appendChild(openBtn);
+      actions.appendChild(renameBtn);
+      actions.appendChild(deleteBtn);
+      row.appendChild(info);
+      row.appendChild(actions);
+      elements.dashboardRecentList.appendChild(row);
+    });
+  }
+
+  function renderDashboard() {
+    if (elements.dashboardScreen) {
+      elements.dashboardScreen.classList.remove("hidden");
+    }
+    if (elements.setupScreen) {
+      elements.setupScreen.classList.add("hidden");
+    }
+    if (elements.editorShell) {
+      elements.editorShell.classList.add("hidden");
+    }
+    if (elements.dashboardResumeBtn) {
+      elements.dashboardResumeBtn.disabled = !pendingStoredState;
+    }
+    if (elements.dashboardResumeMeta) {
+      if (!pendingStoredState) {
+        elements.dashboardResumeMeta.textContent = "No local session found.";
+      } else {
+        const meta = pendingStoredState.meta || {};
+        const label = meta.fileName || "Stored session";
+        const date = meta.importedAt ? new Date(meta.importedAt).toLocaleString() : "";
+        elements.dashboardResumeMeta.textContent = date ? `${label} | ${date}` : label;
+      }
+    }
+    renderDashboardRecentList();
+  }
+
   function renderSetup() {
     if (!elements.setupScreen) return;
+    if (elements.dashboardScreen) {
+      elements.dashboardScreen.classList.add("hidden");
+    }
     elements.setupScreen.classList.remove("hidden");
     if (elements.editorShell) {
       elements.editorShell.classList.add("hidden");
@@ -735,7 +1070,8 @@ Run:
     if (elements.projectTitle) elements.projectTitle.value = appState.project.title || "";
     if (elements.projectAuthor) elements.projectAuthor.value = appState.project.author || "";
     if (elements.projectLanguage) elements.projectLanguage.value = appState.project.language || "en";
-    if (elements.projectType) elements.projectType.value = appState.project.type || "print";
+    appState.project.type = "print";
+    if (elements.projectType) elements.projectType.value = "Amazon KDP Print";
     if (elements.projectTrimSize) elements.projectTrimSize.value = appState.docSettings.trimSize;
     if (elements.projectBleed) elements.projectBleed.value = appState.project.bleed ? "on" : "off";
     if (elements.projectMarginTop) elements.projectMarginTop.value = appState.docSettings.marginTopIn;
@@ -757,22 +1093,13 @@ Run:
     if (elements.projectSpaceBefore) elements.projectSpaceBefore.value = appState.docSettings.spacingBeforePt;
     if (elements.projectSpaceAfter) elements.projectSpaceAfter.value = appState.docSettings.spacingAfterPt;
 
-    const printSection = document.getElementById("project-print-settings");
-    if (printSection) {
-      const isPrint = (appState.project.type || "print") === "print";
-      printSection.classList.toggle("disabled", !isPrint);
-    }
-
     const pageCount = appState.pages.length;
     if (elements.projectValidation) {
-      if ((appState.project.type || "print") === "print") {
-        const issues = validatePrintSettings(appState.docSettings, pageCount, appState.project.bleed);
-        elements.projectValidation.textContent = issues.length
-          ? `Validation: ${issues.join(" | ")}`
-          : "Validation: OK";
-      } else {
-        elements.projectValidation.textContent = "Validation: eBook selected (print margins ignored).";
-      }
+      elements.projectValidation.textContent = buildKdpValidationMessage(
+        appState.docSettings,
+        pageCount,
+        appState.project.bleed
+      );
     }
   }
 
@@ -780,7 +1107,7 @@ Run:
     appState.project.title = elements.projectTitle?.value?.trim() || "";
     appState.project.author = elements.projectAuthor?.value?.trim() || "";
     appState.project.language = elements.projectLanguage?.value || "en";
-    appState.project.type = elements.projectType?.value || "print";
+    appState.project.type = "print";
     appState.project.bleed = (elements.projectBleed?.value || "off") === "on";
 
     appState.docSettings.trimSize = elements.projectTrimSize?.value || appState.docSettings.trimSize;
@@ -937,6 +1264,8 @@ Run:
       const spacingAfterPx = ptToPx(format.spacingAfterPt || 0);
       const block = document.createElement("div");
       block.className = "paragraph-block";
+      block.dataset.paragraphId = para.id;
+      block.dataset.pageId = page.id;
       block.style.marginTop = `${spacingBeforePx}px`;
       block.style.marginBottom = `${spacingAfterPx}px`;
       if (para.id === activeParagraphId) {
@@ -973,6 +1302,20 @@ Run:
       });
       edited.addEventListener("keydown", (event) => {
         const key = event.key.toLowerCase();
+        if (key === "tab") {
+          event.preventDefault();
+          const start = edited.selectionStart ?? edited.value.length;
+          const end = edited.selectionEnd ?? edited.value.length;
+          const indent = "  ";
+          edited.value = `${edited.value.slice(0, start)}${indent}${edited.value.slice(end)}`;
+          edited.selectionStart = edited.selectionEnd = start + indent.length;
+          para.editedText = edited.value;
+          autoSizeTextarea(edited);
+          scheduleHistory(para, para.editedText);
+          scheduleSave();
+          renderCurrentPageStatsOnly();
+          return;
+        }
         if ((event.ctrlKey || event.metaKey) && !event.shiftKey && key === "z") {
           event.preventDefault();
           undoParagraph(para, edited);
@@ -980,6 +1323,10 @@ Run:
         if ((event.ctrlKey || event.metaKey) && (key === "y" || (event.shiftKey && key === "z"))) {
           event.preventDefault();
           redoParagraph(para, edited);
+        }
+        if (event.altKey && (key === "arrowdown" || key === "arrowup")) {
+          event.preventDefault();
+          focusAdjacentParagraph(para.id, page.id, key === "arrowdown" ? 1 : -1);
         }
       });
       autoSizeTextarea(edited);
@@ -1019,6 +1366,43 @@ Run:
     activeParagraphId = location.paragraph.id;
     scheduleSave();
     render();
+  }
+
+  function focusParagraphEditor(paragraphId) {
+    if (!paragraphId) return;
+    requestAnimationFrame(() => {
+      const target = document.querySelector(`.paragraph-block[data-paragraph-id="${paragraphId}"] textarea`);
+      if (!target) return;
+      target.focus();
+      const length = target.value.length;
+      target.setSelectionRange(length, length);
+    });
+  }
+
+  function focusAdjacentParagraph(paragraphId, pageId, direction) {
+    const location = findParagraphLocation(paragraphId, pageId);
+    if (!location) return;
+    const currentPage = location.page;
+    let nextPageIndex = location.pageIndex;
+    let nextParaIndex = location.paraIndex + direction;
+
+    if (nextParaIndex < 0 || nextParaIndex >= currentPage.paragraphs.length) {
+      nextPageIndex = location.pageIndex + direction;
+      const nextPage = appState.pages[nextPageIndex];
+      if (!nextPage || !nextPage.paragraphs.length) return;
+      nextParaIndex = direction > 0 ? 0 : nextPage.paragraphs.length - 1;
+    }
+
+    const nextPage = appState.pages[nextPageIndex];
+    const nextParagraph = nextPage?.paragraphs[nextParaIndex];
+    if (!nextParagraph) return;
+    jumpToParagraph({
+      page: nextPage,
+      pageIndex: nextPageIndex,
+      paragraph: nextParagraph,
+      paraIndex: nextParaIndex,
+    });
+    focusParagraphEditor(nextParagraph.id);
   }
 
   function importText(text, meta) {
@@ -1352,9 +1736,16 @@ Run:
 
   function render() {
     renderFileMeta();
+    if (appState.ui.view === "dashboard") {
+      renderDashboard();
+      return;
+    }
     if (appState.ui.view === "setup") {
       renderSetup();
       return;
+    }
+    if (elements.dashboardScreen) {
+      elements.dashboardScreen.classList.add("hidden");
     }
     if (elements.setupScreen) {
       elements.setupScreen.classList.add("hidden");
@@ -1365,6 +1756,7 @@ Run:
     renderToolbar();
     renderCurrentPage();
     renderOutline();
+    renderKdpPreflight();
     updatePropertiesPanel();
   }
 
@@ -1538,6 +1930,125 @@ Run:
       .map((page) => page.paragraphs.map((p) => p.editedText).join("\n\n"))
       .join("\n\n");
     downloadBlob(text, `${baseFileName()}-reviewed.txt`, "text/plain");
+  }
+
+  function escapeHtml(text) {
+    return String(text || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function buildPrintRunningHtml(settings, pageNumber, zone) {
+    const source = zone === "header" ? settings.headerText : settings.footerText;
+    const text = escapeHtml(applyTokens(source, pageNumber));
+    const pageNumberPosition = settings.pageNumberPosition || "none";
+    const showNumber = pageNumberPosition.startsWith(zone);
+    const numberPos = showNumber ? pageNumberPosition.split("-")[1] : null;
+    const pageText = showNumber ? String(pageNumber) : "";
+
+    const left = numberPos === "left" ? pageText : text;
+    const center = numberPos === "center" ? pageText : "";
+    const right = numberPos === "right" ? pageText : numberPos === "left" ? text : "";
+
+    if (!left && !center && !right) return "";
+    return `<div class="running-row ${zone}"><span>${left}</span><span>${center}</span><span>${right}</span></div>`;
+  }
+
+  function exportKdpPdf() {
+    if (!validateBeforeExport()) return;
+    const pages = appState.pages || [];
+    if (!pages.length) {
+      alert(getContent("alerts.noPagesToExport", "No pages to export."));
+      return;
+    }
+
+    const settings = appState.docSettings;
+    const trim = getTrimSize(settings.trimSize);
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) {
+      alert("Pop-up blocked. Allow pop-ups to export PDF.");
+      return;
+    }
+
+    const sections = pages
+      .map((page, index) => {
+        const pageNumber = index + 1;
+        const paragraphHtml = page.paragraphs
+          .map((para) => {
+            const format = getParagraphFormat(para);
+            const tag = styleForExport(para.styleTag);
+            const rawText = tag === "Poem" ? para.editedText : (para.editedText || "").replace(/\n+/g, " ");
+            const text = escapeHtml(rawText).replace(/\n/g, "<br>");
+            const classes = [
+              "para",
+              tag === "Title" ? "title" : "",
+              tag === "Heading1" ? "heading" : "",
+              tag === "Quote" ? "quote" : "",
+              tag === "Poem" ? "poem" : "",
+            ]
+              .filter(Boolean)
+              .join(" ");
+            const style =
+              `font-family:${escapeHtml(format.fontFamily)};` +
+              `font-size:${Number(format.fontSize || settings.fontSize)}pt;` +
+              `line-height:${Number(format.lineSpacing || settings.lineSpacing)};` +
+              `text-align:${escapeHtml(format.textAlign || settings.textAlign)};` +
+              `text-indent:${format.indentEnabled ? Number(format.indentCm || 0) : 0}cm;` +
+              `margin:${Number(format.spacingBeforePt || 0)}pt 0 ${Number(format.spacingAfterPt || 0)}pt 0;`;
+            return `<p class="${classes}" style="${style}">${text}</p>`;
+          })
+          .join("");
+
+        return `
+          <section class="print-page">
+            ${buildPrintRunningHtml(settings, pageNumber, "header")}
+            <div class="print-body">${paragraphHtml}</div>
+            ${buildPrintRunningHtml(settings, pageNumber, "footer")}
+          </section>
+        `;
+      })
+      .join("");
+
+    const html = `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>${escapeHtml(baseFileName())} - KDP PDF Export</title>
+  <style>
+    @page {
+      size: ${trim.width}in ${trim.height}in;
+      margin: ${settings.marginTopIn}in ${settings.marginOutsideIn}in ${settings.marginBottomIn}in ${settings.marginInsideIn}in;
+    }
+    html, body { margin: 0; padding: 0; background: #fff; color: #111; }
+    body { font-family: ${escapeHtml(settings.fontFamily)}, serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .print-page { page-break-after: always; break-after: page; min-height: calc(${trim.height}in - ${settings.marginTopIn}in - ${settings.marginBottomIn}in); }
+    .print-page:last-child { page-break-after: auto; }
+    .running-row { display: grid; grid-template-columns: 1fr auto 1fr; font-size: 10pt; color: #444; min-height: 12pt; margin-bottom: 8pt; }
+    .running-row.footer { margin-top: 8pt; margin-bottom: 0; }
+    .running-row span:nth-child(1) { text-align: left; }
+    .running-row span:nth-child(2) { text-align: center; }
+    .running-row span:nth-child(3) { text-align: right; }
+    .print-body { display: block; }
+    .para { white-space: pre-wrap; }
+    .para.title { text-align: center !important; font-weight: 700; }
+    .para.heading { font-weight: 700; }
+    .para.quote { font-style: italic; padding-left: 0.2in; }
+    .para.poem { white-space: pre-wrap; }
+  </style>
+</head>
+<body>${sections}</body>
+</html>`;
+
+    printWindow.document.open();
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+    }, 250);
   }
 
   function baseFileName() {
@@ -1731,16 +2242,23 @@ Run:
   }
 
   function validateBeforeExport() {
-    if ((appState.project?.type || "print") !== "print") return true;
+    appState.project.type = "print";
     const pageCount = appState.pages.length;
     const issues = validatePrintSettings(appState.docSettings, pageCount, appState.project.bleed);
     if (issues.length) {
-      alert(`Cannot export for print:\n${issues.join("\n")}`);
+      alert(`Cannot export for KDP Print:\n${issues.join("\n")}`);
       return false;
     }
     return true;
   }
   function bindEvents() {
+    if (elements.dashboardNewProjectBtn) {
+      elements.dashboardNewProjectBtn.addEventListener("click", startNewKdpProject);
+    }
+    if (elements.dashboardResumeBtn) {
+      elements.dashboardResumeBtn.addEventListener("click", resumePendingSession);
+    }
+
     [
       elements.projectTitle,
       elements.projectAuthor,
@@ -1831,6 +2349,7 @@ Run:
 
     if (elements.exportSessionBtn) elements.exportSessionBtn.addEventListener("click", exportSession);
     if (elements.exportTxtBtn) elements.exportTxtBtn.addEventListener("click", exportTxt);
+    if (elements.exportPdfBtn) elements.exportPdfBtn.addEventListener("click", exportKdpPdf);
     if (elements.exportDocxBtn) elements.exportDocxBtn.addEventListener("click", exportDocx);
 
     if (elements.docSettingsBtn && elements.docSettingsModal) {
@@ -1936,13 +2455,7 @@ Run:
     }
 
     if (elements.resumeBtn) {
-      elements.resumeBtn.addEventListener("click", () => {
-        if (!pendingStoredState) return;
-        appState = hydrateState(pendingStoredState);
-        pendingStoredState = null;
-        elements.resumeBanner.classList.add("hidden");
-        render();
-      });
+      elements.resumeBtn.addEventListener("click", resumePendingSession);
     }
 
     if (elements.dismissBtn) {
@@ -1950,6 +2463,9 @@ Run:
         pendingStoredState = null;
         localStorage.removeItem(STORAGE_KEY);
         elements.resumeBanner.classList.add("hidden");
+        if (appState.ui.view === "dashboard") {
+          renderDashboard();
+        }
       });
     }
 
@@ -2035,6 +2551,7 @@ Run:
         }
         scheduleSave();
         renderCurrentPage();
+        renderKdpPreflight();
       });
     });
   }
