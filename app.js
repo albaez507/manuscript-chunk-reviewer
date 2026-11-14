@@ -83,6 +83,16 @@ Run:
     outlineFront: $("outline-front"),
     outlineBody: $("outline-body"),
     outlineBack: $("outline-back"),
+    leftTabContents: $("left-tab-contents"),
+    leftTabPreflight: $("left-tab-preflight"),
+    leftPanelContents: $("left-panel-contents"),
+    leftPanelPreflight: $("left-panel-preflight"),
+    outlineFrontCount: $("outline-front-count"),
+    outlineBodyCount: $("outline-body-count"),
+    outlineBackCount: $("outline-back-count"),
+    outlineToggleFront: $("outline-toggle-front"),
+    outlineToggleBody: $("outline-toggle-body"),
+    outlineToggleBack: $("outline-toggle-back"),
     addFrontBtn: $("add-front-btn"),
     addBodyBtn: $("add-body-btn"),
     addBackBtn: $("add-back-btn"),
@@ -194,6 +204,12 @@ Run:
       },
       ui: {
         view: "dashboard",
+        outlineCollapsed: {
+          front: false,
+          body: false,
+          back: false,
+        },
+        leftSidebarTab: "contents",
       },
       docSettings: {
         trimSize: "6x9",
@@ -409,7 +425,14 @@ Run:
       ...state,
       meta: { ...defaults.meta, ...(state.meta || {}) },
       project: { ...defaults.project, ...(state.project || {}) },
-      ui: { ...defaults.ui, ...(state.ui || {}) },
+      ui: {
+        ...defaults.ui,
+        ...(state.ui || {}),
+        outlineCollapsed: {
+          ...defaults.ui.outlineCollapsed,
+          ...((state.ui && state.ui.outlineCollapsed) || {}),
+        },
+      },
       docSettings: { ...defaults.docSettings, ...(state.docSettings || {}) },
       sourceParagraphs: Array.isArray(state.sourceParagraphs) ? state.sourceParagraphs : [],
       sourceText: typeof state.sourceText === "string" ? state.sourceText : "",
@@ -423,6 +446,9 @@ Run:
     merged.project.type = "print";
     if (!merged.project.id) {
       merged.project.id = uid("proj");
+    }
+    if (!["contents", "preflight"].includes(merged.ui.leftSidebarTab)) {
+      merged.ui.leftSidebarTab = "contents";
     }
 
     merged.pages.forEach((page, pageIndex) => {
@@ -908,6 +934,49 @@ Run:
     });
   }
 
+  function sectionPageCount(section) {
+    return (appState.pages || []).filter((page) => (page.section || "body") === section).length;
+  }
+
+  function toggleOutlineSection(section) {
+    if (!appState.ui?.outlineCollapsed) return;
+    const current = !!appState.ui.outlineCollapsed[section];
+    appState.ui.outlineCollapsed[section] = !current;
+    scheduleSave();
+    renderOutline();
+  }
+
+  function renderLeftSidebarTabs() {
+    const tab = appState.ui?.leftSidebarTab || "contents";
+    const showContents = tab !== "preflight";
+    if (elements.leftTabContents) {
+      elements.leftTabContents.classList.toggle("active", showContents);
+    }
+    if (elements.leftTabPreflight) {
+      elements.leftTabPreflight.classList.toggle("active", !showContents);
+    }
+    if (elements.leftPanelContents) {
+      elements.leftPanelContents.classList.toggle("active", showContents);
+    }
+    if (elements.leftPanelPreflight) {
+      elements.leftPanelPreflight.classList.toggle("active", !showContents);
+    }
+  }
+
+  function setLeftSidebarTab(tab) {
+    const next = tab === "preflight" ? "preflight" : "contents";
+    appState.ui.leftSidebarTab = next;
+    scheduleSave();
+    renderLeftSidebarTabs();
+  }
+
+  function outlinePreviewText(page) {
+    const first = page?.paragraphs?.[0]?.editedText || "";
+    const clean = first.replace(/\s+/g, " ").trim();
+    if (!clean) return "Empty page";
+    return clean.length > 72 ? `${clean.slice(0, 72)}...` : clean;
+  }
+
   function currentPage() {
     return appState.pages[appState.currentPageIndex] || null;
   }
@@ -1253,8 +1322,17 @@ Run:
     elements.editorBody.innerHTML = "";
 
     const pageNumber = appState.currentPageIndex + 1;
-    const hostWidth = elements.editorBody?.clientWidth || 720;
-    const { frame, body: pageBody } = buildPageShell(appState.docSettings, pageNumber, hostWidth, "editor-page");
+    const measuredWidth = elements.editorBody?.clientWidth || 0;
+    const measuredHeight = elements.editorBody?.clientHeight || 0;
+    const hostWidth = measuredWidth > 160 ? measuredWidth : 720;
+    const hostHeight = measuredHeight > 160 ? measuredHeight : Math.max(320, window.innerHeight - 220);
+    const { frame, body: pageBody } = buildPageShell(
+      appState.docSettings,
+      pageNumber,
+      hostWidth,
+      hostHeight,
+      "editor-page"
+    );
     frame.classList.add("editor-frame");
     page.paragraphs.forEach((para) => {
       ensureHistory(para);
@@ -1492,9 +1570,46 @@ Run:
     wireOutlineList(elements.outlineBody, "body");
     wireOutlineList(elements.outlineBack, "back");
 
+    const collapsed = appState.ui?.outlineCollapsed || {};
+    const sectionConfig = [
+      {
+        key: "front",
+        list: elements.outlineFront,
+        toggle: elements.outlineToggleFront,
+        countEl: elements.outlineFrontCount,
+      },
+      {
+        key: "body",
+        list: elements.outlineBody,
+        toggle: elements.outlineToggleBody,
+        countEl: elements.outlineBodyCount,
+      },
+      {
+        key: "back",
+        list: elements.outlineBack,
+        toggle: elements.outlineToggleBack,
+        countEl: elements.outlineBackCount,
+      },
+    ];
+    sectionConfig.forEach(({ key, list, toggle, countEl }) => {
+      const isCollapsed = !!collapsed[key];
+      list.classList.toggle("collapsed", isCollapsed);
+      const sectionHost = list.closest(".kindle-section");
+      if (sectionHost) {
+        sectionHost.classList.toggle("collapsed", isCollapsed);
+      }
+      if (toggle) {
+        toggle.classList.toggle("collapsed", isCollapsed);
+        toggle.setAttribute("aria-expanded", String(!isCollapsed));
+      }
+      if (countEl) {
+        countEl.textContent = String(sectionPageCount(key));
+      }
+    });
+
     appState.pages.forEach((page, index) => {
       const item = document.createElement("div");
-      item.className = "outline-item";
+      item.className = "outline-item kindle-item";
       item.draggable = true;
       if (index === appState.currentPageIndex) {
         item.classList.add("active");
@@ -1503,12 +1618,32 @@ Run:
       const left = document.createElement("div");
       left.className = "outline-left";
 
+      const number = document.createElement("div");
+      number.className = "outline-number";
+      number.textContent = String(index + 1);
+
+      const content = document.createElement("div");
+      content.className = "outline-content";
+
       const title = page.title || `Page ${index + 1}`;
       const label = document.createElement("div");
       label.className = "outline-label";
-      label.textContent = `${index + 1}. ${title}`;
+      label.textContent = title;
 
-      left.appendChild(label);
+      const preview = document.createElement("div");
+      preview.className = "outline-preview";
+      preview.textContent = outlinePreviewText(page);
+
+      const meta = document.createElement("div");
+      meta.className = "outline-meta";
+      const paraCount = Array.isArray(page.paragraphs) ? page.paragraphs.length : 0;
+      meta.textContent = `${paraCount} paragraph${paraCount === 1 ? "" : "s"}`;
+
+      content.appendChild(label);
+      content.appendChild(preview);
+      content.appendChild(meta);
+      left.appendChild(number);
+      left.appendChild(content);
 
       const actions = document.createElement("div");
       actions.className = "outline-item-actions";
@@ -1712,7 +1847,17 @@ Run:
   function autoSizeTextarea(textarea) {
     if (!textarea) return;
     textarea.style.height = "auto";
-    textarea.style.height = `${textarea.scrollHeight}px`;
+    const targetHeight = textarea.scrollHeight;
+    const inEditorPage = !!textarea.closest(".editor-page");
+    if (!inEditorPage) {
+      textarea.style.overflowY = "hidden";
+      textarea.style.height = `${targetHeight}px`;
+      return;
+    }
+    const maxEditorHeight = 220;
+    const clampedHeight = Math.min(targetHeight, maxEditorHeight);
+    textarea.style.height = `${clampedHeight}px`;
+    textarea.style.overflowY = targetHeight > maxEditorHeight ? "auto" : "hidden";
   }
 
   function applyEditorParagraphStyles(textarea, config = {}) {
@@ -1757,6 +1902,7 @@ Run:
     renderCurrentPage();
     renderOutline();
     renderKdpPreflight();
+    renderLeftSidebarTabs();
     updatePropertiesPanel();
   }
 
@@ -1840,7 +1986,7 @@ Run:
     return block;
   }
 
-  function buildPageShell(settings, pageNumber, hostWidth, extraClass = "") {
+  function buildPageShell(settings, pageNumber, hostWidth, hostHeight, extraClass = "") {
     const trim = getTrimSize(settings.trimSize);
     const dpi = 96;
     const pageWidthPx = inchesToPx(trim.width, dpi);
@@ -1856,8 +2002,13 @@ Run:
     const leftPx = isLeftPage ? outsidePx : insidePx;
     const rightPx = isLeftPage ? insidePx : outsidePx;
 
-    const safeHost = Math.max(hostWidth || pageWidthPx, 320);
-    const scale = Math.min(1, (safeHost - 24) / pageWidthPx);
+    const framePaddingX = 44;
+    const framePaddingY = 44;
+    const safeHostWidth = Math.max(hostWidth || pageWidthPx + framePaddingX, 320);
+    const safeHostHeight = Math.max(hostHeight || pageHeightPx + framePaddingY, 320);
+    const widthScale = (safeHostWidth - framePaddingX) / pageWidthPx;
+    const heightScale = (safeHostHeight - framePaddingY) / pageHeightPx;
+    const scale = Math.max(0.1, Math.min(1, widthScale, heightScale));
 
     const frame = document.createElement("div");
     frame.className = `page-frame ${extraClass}`.trim();
@@ -1875,9 +2026,11 @@ Run:
     page.style.boxSizing = "border-box";
     page.style.transform = `scale(${scale})`;
     page.style.transformOrigin = "top left";
+    page.style.overflow = "hidden";
 
     const body = document.createElement("div");
     body.className = "book-page-body";
+    body.style.overflow = "hidden";
 
     const headerText = applyTokens(settings.headerText, pageNumber);
     const footerText = applyTokens(settings.footerText, pageNumber);
@@ -2367,6 +2520,21 @@ Run:
     if (elements.addFrontBtn) elements.addFrontBtn.addEventListener("click", () => addBlankPage("front"));
     if (elements.addBodyBtn) elements.addBodyBtn.addEventListener("click", () => addBlankPage("body"));
     if (elements.addBackBtn) elements.addBackBtn.addEventListener("click", () => addBlankPage("back"));
+    if (elements.leftTabContents) {
+      elements.leftTabContents.addEventListener("click", () => setLeftSidebarTab("contents"));
+    }
+    if (elements.leftTabPreflight) {
+      elements.leftTabPreflight.addEventListener("click", () => setLeftSidebarTab("preflight"));
+    }
+    if (elements.outlineToggleFront) {
+      elements.outlineToggleFront.addEventListener("click", () => toggleOutlineSection("front"));
+    }
+    if (elements.outlineToggleBody) {
+      elements.outlineToggleBody.addEventListener("click", () => toggleOutlineSection("body"));
+    }
+    if (elements.outlineToggleBack) {
+      elements.outlineToggleBack.addEventListener("click", () => toggleOutlineSection("back"));
+    }
 
     if (elements.propertiesTabElements) {
       elements.propertiesTabElements.addEventListener("click", () => setPropertiesTab("elements"));
@@ -2553,6 +2721,12 @@ Run:
         renderCurrentPage();
         renderKdpPreflight();
       });
+    });
+
+    window.addEventListener("resize", () => {
+      if (appState.ui.view === "editor") {
+        renderCurrentPage();
+      }
     });
   }
 

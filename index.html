@@ -221,26 +221,52 @@
         <div id="file-meta" class="brand-subtitle" data-i18n="brand.subtitleNoFile">No file loaded</div>
       </div>
 
-      <div class="sidebar-section">
-        <div class="section-title">Outline</div>
-        <div class="outline-block">
-          <div class="outline-actions">
-            <button id="add-front-btn" class="btn ghost">+ Front</button>
-            <button id="add-body-btn" class="btn ghost">+ Body</button>
-            <button id="add-back-btn" class="btn ghost">+ Back</button>
+      <div class="sidebar-section contents-section">
+        <div class="left-tab-group">
+          <button id="left-tab-contents" class="left-tab-btn active" type="button">Contents</button>
+          <button id="left-tab-preflight" class="left-tab-btn" type="button">KDP Preflight</button>
+        </div>
+
+        <div id="left-panel-contents" class="left-tab-panel active">
+          <div class="outline-block kindle-contents">
+            <div class="outline-section kindle-section" data-section="front">
+              <div class="outline-head">
+                <button id="outline-toggle-front" class="outline-toggle" type="button" aria-expanded="true">Front Matter</button>
+                <div class="outline-head-right">
+                  <span id="outline-front-count" class="outline-count">0</span>
+                  <button id="add-front-btn" class="btn ghost small" type="button">+ Page</button>
+                </div>
+              </div>
+              <div id="outline-front" class="outline-list"></div>
+            </div>
+            <div class="outline-section kindle-section" data-section="body">
+              <div class="outline-head">
+                <button id="outline-toggle-body" class="outline-toggle" type="button" aria-expanded="true">Body</button>
+                <div class="outline-head-right">
+                  <span id="outline-body-count" class="outline-count">0</span>
+                  <button id="add-body-btn" class="btn ghost small" type="button">+ Page</button>
+                </div>
+              </div>
+              <div id="outline-body" class="outline-list"></div>
+            </div>
+            <div class="outline-section kindle-section" data-section="back">
+              <div class="outline-head">
+                <button id="outline-toggle-back" class="outline-toggle" type="button" aria-expanded="true">Back Matter</button>
+                <div class="outline-head-right">
+                  <span id="outline-back-count" class="outline-count">0</span>
+                  <button id="add-back-btn" class="btn ghost small" type="button">+ Page</button>
+                </div>
+              </div>
+              <div id="outline-back" class="outline-list"></div>
+            </div>
           </div>
-          <div class="outline-section">
-            <div class="outline-title">Front Matter</div>
-            <div id="outline-front" class="outline-list"></div>
-          </div>
-          <div class="outline-section">
-            <div class="outline-title">Body</div>
-            <div id="outline-body" class="outline-list"></div>
-          </div>
-          <div class="outline-section">
-            <div class="outline-title">Back Matter</div>
-            <div id="outline-back" class="outline-list"></div>
-          </div>
+        </div>
+
+        <div id="left-panel-preflight" class="left-tab-panel">
+          <div id="preflight-summary" class="hint">Preflight pending.</div>
+          <div id="preflight-list" class="preflight-list"></div>
+          <button id="export-pdf-btn" class="btn primary">Export KDP PDF</button>
+          <button id="export-docx-btn" class="btn ghost">Export DOCX Backup</button>
         </div>
       </div>
 
@@ -248,14 +274,6 @@
         <div class="section-title">Pagination</div>
         <button id="paginate-btn" class="btn">Paginate</button>
         <button id="project-settings-btn" class="btn ghost">Project settings</button>
-      </div>
-
-      <div class="sidebar-section">
-        <div class="section-title">KDP Preflight</div>
-        <div id="preflight-summary" class="hint">Preflight pending.</div>
-        <div id="preflight-list" class="preflight-list"></div>
-        <button id="export-pdf-btn" class="btn primary">Export KDP PDF</button>
-        <button id="export-docx-btn" class="btn ghost">Export DOCX Backup</button>
       </div>
 
       <div class="sidebar-section">
